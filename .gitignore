@@ -1,7 +1,0 @@
-engines/
-models/
-venv/
-node/
-logs/
-*.gguf
-*.safetensors

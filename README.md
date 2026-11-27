@@ -1,61 +1,121 @@
 # local-coding-model
 
-Run [Inkling 2 Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini) on one 24 GB NVIDIA GPU with
-llama.cpp or [Maya](https://github.com/alesha-pro/maya-inkling-mini), and use it from the
-[Pi](https://pi.dev) coding agent. Tested on an NVIDIA A30 (Linux), with Pi on Windows.
+Inkling 2 Mini on the GPU server, used from a coding agent. Everything is already installed on the
+server in `/home/shared/local-coding-model/`.
 
-First time? Follow [docs/setup.md](docs/setup.md) to build the engines and get the models.
+Replace `<server>`, `<jump-host>`, `<username>` and `<key>` with your own.
 
-## 1. Start the model (on the GPU server)
+## 1. Start the model (on the server)
+
+Skip this if `curl http://127.0.0.1:8080/v1/models` on the server already answers.
 
     tmux new -s llm
-    ./serve.sh maya-q4
+    /home/shared/local-coding-model/serve.sh maya-q4
 
 Press `Ctrl+b` then `d` to leave it running.
 
-## 2. Use it: pick A or B
+| Command (after the path above) | Model                          |
+|--------------------------------|--------------------------------|
+| `serve.sh maya-q4`             | Maya, Q4                       |
+| `serve.sh maya-q8`             | Maya, Q8                       |
+| `serve.sh llama`               | llama.cpp, Q4                  |
+| add `--drafter`                | drafter on (default: off)      |
+| add `--ctx 32768`              | bigger context (default 16384) |
 
-### A. On the server
+To switch, stop the running one first (only the person who started it can):
 
-    cd your-project
-    /path/to/local-coding-model/pi.sh
+    tmux send-keys -t llm C-c
 
-Needs [Node](https://nodejs.org) 22.19 or newer and Pi
-(`npm install -g --ignore-scripts @earendil-works/pi-coding-agent`).
-
-### B. From your own computer
-
-**Once:** install Node 22.19 or newer and Pi, then copy the two files in [`pi/`](pi/) to `~/.pi/agent/`
-(Windows: `%USERPROFILE%\.pi\agent\`). This replaces any files of the same name you already have.
-
-**Every time:** open an SSH tunnel and leave it open (it prints nothing):
-
-    ssh -N -L 8080:127.0.0.1:8080 <user>@<server>
-
-Behind a jump host, add `-J <user>@<jump-host>`. Then, in a second terminal:
+## 2. Use Pi on the server
 
     cd your-project
-    pi
+    /home/shared/local-coding-model/pi.sh
 
-Pi runs commands and edits files without asking, so start it in a project folder.
+## 3. Use Pi or opencode on your own computer
 
-## Change the model
+### Set up the tunnel (once)
 
-Stop the running server (`tmux send-keys -t llm C-c`), then start another one:
+Add to `~/.ssh/config` (Windows: `C:\Users\<you>\.ssh\config`). Without a jump host, leave out the
+first block and the `ProxyJump` line.
 
-| Command                      | Model                          |
-|------------------------------|--------------------------------|
-| `./serve.sh maya-q4`         | Maya, Q4                       |
-| `./serve.sh maya-q8`         | Maya, Q8                       |
-| `./serve.sh llama`           | llama.cpp, Q4                  |
-| add `--drafter`              | drafter on (default: off)      |
-| add `--ctx 32768`            | bigger context (default 16384) |
+    Host llm-jump
+      HostName <jump-host>
+      User <username>
+      IdentityFile ~/.ssh/<key>
 
-- In Pi, `/model` should match what the server runs (q4 or q8). It only changes the label.
-- After raising `--ctx`, raise `contextWindow` in Pi's `models.json` to the same number.
+    Host llm
+      HostName <server>
+      User <username>
+      IdentityFile ~/.ssh/<key>
+      ProxyJump llm-jump
+      LocalForward 8080 127.0.0.1:8080
+      ExitOnForwardFailure yes
+
+### Open the tunnel (every time)
+
+In its own terminal, left open. It prints nothing.
+
+    ssh -N llm
+
+Or run it in the background:
+
+| System         | Open                                                          | Close                                                                              |
+|----------------|---------------------------------------------------------------|------------------------------------------------------------------------------------|
+| Windows        | `Start-Process ssh -ArgumentList '-N','llm' -WindowStyle Hidden` | `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080 -State Listen).OwningProcess` |
+| macOS or Linux | `ssh -f -N llm`                                               | `pkill -f "ssh -f -N llm"`                                                          |
+
+The background form needs a key that does not ask for a passphrase (or one loaded in `ssh-agent`).
+
+Check it (`curl.exe` in PowerShell):
+
+    curl http://127.0.0.1:8080/v1/models
+
+### Pi
+
+Needs [Node](https://nodejs.org) 22.19 or newer. Once, replacing any files of the same name:
+
+Windows (PowerShell):
+
+    npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+    mkdir -Force $HOME\.pi\agent
+    scp "llm:/home/shared/local-coding-model/pi/*.json" $HOME\.pi\agent\
+
+macOS or Linux:
+
+    npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+    mkdir -p ~/.pi/agent
+    scp "llm:/home/shared/local-coding-model/pi/*.json" ~/.pi/agent/
+
+Then run `pi` in your project folder.
+
+### opencode
+
+This config is for [opencode](https://opencode.ai) 1.x; version 2 uses a different format.
+Once (if you already have an `opencode.json`, copy the `local-llm` block into it instead):
+
+Windows (PowerShell):
+
+    npm install -g opencode-ai
+    mkdir -Force $HOME\.config\opencode
+    scp llm:/home/shared/local-coding-model/opencode/opencode.json $HOME\.config\opencode\
+
+macOS or Linux:
+
+    npm install -g opencode-ai
+    mkdir -p ~/.config/opencode
+    scp llm:/home/shared/local-coding-model/opencode/opencode.json ~/.config/opencode/
+
+Then run `opencode` in your project folder.
 
 ## Good to know
 
-- 4 requests run at once and share the context. There is no password: it listens on `127.0.0.1` only.
-- The server does not restart after a reboot.
-- Logs are written to `logs/`.
+- Both agents run commands and edit files on the machine they run on. Start them in a project folder.
+- In the agent, pick the model (q4 or q8) the server is running. It only changes the label.
+- After raising `--ctx`, raise the context number in the agent's config to match
+  (`contextWindow` for Pi, `limit.context` for opencode).
+- 4 requests run at once and share the context. The server has no password and only listens on the
+  server itself, hence the tunnel. It does not restart after a reboot.
+
+## Files
+
+Copies of the config files: [`pi/`](pi/) and [`opencode/`](opencode/).
