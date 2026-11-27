@@ -9,14 +9,14 @@
           "id": "inkling-2-mini-q4",
           "name": "Inkling 2 Mini Q4",
           "reasoning": true,
-          "contextWindow": 16384,
+          "contextWindow": 65536,
           "maxTokens": 8192
         },
         {
           "id": "inkling-2-mini-q8",
           "name": "Inkling 2 Mini Q8",
           "reasoning": true,
-          "contextWindow": 16384,
+          "contextWindow": 65536,
           "maxTokens": 8192
         }
       ]

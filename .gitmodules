@@ -1,0 +1,6 @@
+[submodule "upstream/maya"]
+	path = upstream/maya
+	url = https://github.com/alesha-pro/maya-inkling-mini.git
+[submodule "upstream/llama.cpp"]
+	path = upstream/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp.git

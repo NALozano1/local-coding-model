@@ -13,13 +13,13 @@
           "name": "Inkling 2 Mini Q4",
           "reasoning": true,
           "tool_call": true,
-          "limit": { "context": 16384, "output": 4096 }
+          "limit": { "context": 65536, "output": 8192 }
         },
         "inkling-2-mini-q8": {
           "name": "Inkling 2 Mini Q8",
           "reasoning": true,
           "tool_call": true,
-          "limit": { "context": 16384, "output": 4096 }
+          "limit": { "context": 65536, "output": 8192 }
         }
       }
     }

@@ -1,5 +1,4 @@
 {
   "defaultProvider": "local-llm",
-  "defaultModel": "inkling-2-mini-q4",
-  "compaction": { "reserveTokens": 4096, "keepRecentTokens": 6000 }
+  "defaultModel": "inkling-2-mini-q4"
 }
